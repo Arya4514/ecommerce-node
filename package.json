@@ -7,7 +7,6 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "pm2 restart ecosystem.config.js --env production",
     "start": "node app.js"
-
   },
   "repository": {
     "type": "git",

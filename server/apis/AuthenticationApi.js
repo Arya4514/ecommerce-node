@@ -176,7 +176,7 @@ module.exports = {
                 VerifyOtp.created_at = helpers.getUTCDateTime();
                 VerifyOtp.updated_at = helpers.getUTCDateTime();
 
-
+                console.log('OTP >>', otp)
                 await sequelize.VerifyOtp.destroy({ where: { email: user.email } });
                 await sequelize.VerifyOtp.create(VerifyOtp)
 

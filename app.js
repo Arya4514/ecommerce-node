@@ -9,7 +9,6 @@ var cors = require('cors');
 const path = require("path");
 const config = require("./server/environments");
 var http = require('http').createServer(app);
-const io = require('socket.io')(http);
 var useragent = require('express-useragent');
 
 // configuration ===========================================
@@ -26,6 +25,7 @@ app.use(bodyParser.urlencoded({
     extended: true,
     parameterLimit: 50000
 }));
+
 app.use(cors());
 app.use(logger('dev'))
 
@@ -49,21 +49,6 @@ app.use(express.static(path.join(__dirname, "../build")));
 app.get('/', function (req, res) {
     res.sendFile(__dirname + '/build/index.html');
 });
-
-io.sockets.on("connection", function (socket) {
-    // Everytime a client logs in, display a connected message
-    console.log("Server-Client Connected!");
-    socket.join("_room" + socket.handshake.query.report_document_id);
-    socket.on('connected', function (data) {
-
-    });
-    socket.on('qr_code_scan', function (report_document_id) {
-        io.sockets.in("_room" + report_document_id).emit("qr_code_scan", true);
-    });
-});
-
-const socketIoObject = io;
-module.exports.ioObject = socketIoObject;
 
 http.listen(port, () => {
     console.log('Magic happens on port ' + port); // shoutout to the user

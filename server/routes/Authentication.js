@@ -4,6 +4,6 @@ const AuthenticationController = require("../apis/AuthenticationApi");
 
 router.post("/auth/sign-in", AuthenticationController.signIn);
 router.post("/auth/sign-up", AuthenticationController.signUp);
-router.post("/verify-otp", AuthenticationController.verifyOTP);
+router.post("/auth/verify-otp", AuthenticationController.verifyOTP);
 
 module.exports = router;
