@@ -11,6 +11,9 @@ const email = require('../helpers/email');
 const fs = require('fs');
 const activityLog = require('../helpers/activitylog')
 const { successRes, errorsRes, validation } = require('../helpers/responseApi');
+const userType = require('../helpers/userType');
+const role = require('../helpers/role');
+const { forgorPasswordEmail } = require('../helpers/email');
 
 module.exports = {
 
@@ -93,6 +96,58 @@ module.exports = {
             } else {
                 logger.warn(error.LENGTH_OF_PERSONAL_PIN_NOT_VALIDE);
                 return res.status(500).json(errorsRes(error.LENGTH_OF_PERSONAL_PIN_NOT_VALIDE, res.statusCode));
+            }
+        }).catch(async function (err) {
+            logger.error(err);
+            console.log(err)
+            return res.status(500).json(errorsRes(error.SERVER_ERROR, res.statusCode));
+        });
+
+    },
+
+    createSeller: async (req, res) => {
+        sequelize.sequelize.transaction(async (t1) => {
+
+            if (!req.body.first_name || !req.body.last_name || !req.body.email || !req.body.address ||
+                !req.body.city_id || !req.body.state_id || !req.body.country_id || !req.body.phone ||
+                !req.body.password
+            ) {
+                logger.warn(error.MANDATORY_FIELDS);
+                return res.status(401).json(errorsRes(error.MANDATORY_FIELDS, res.statusCode));
+            }
+
+            let user = await sequelize.Users.findOne({
+                where: {
+                    email: req.body.email,
+                },
+                attributes: { exclude: ['password', 'signup_token'] }
+            });
+
+            if (email) {
+                logger.warn(error.EMAIL_ID_ALREADY_EXITS);
+                return res.status(401).json(errorsRes(error.EMAIL_ID_ALREADY_EXITS, res.statusCode));
+            }
+            else {
+                req.body.password = helpers.hashPassword(req.body.password)
+                req.body.user_type = userType.SELLER
+                req.body.role = role.SELLER
+                req.body.signup_token = new Date().getTime();
+                req.body.is_active = true;
+                req.body.is_confirmed = true;
+                req.body.created_at = new Date();
+                req.body.updated_at = new Date();
+
+                user = await sequelize.Users.create(req.body);
+                let data = {
+                    email: user.email,
+                    signup_token: req.body.signup_token
+                }
+                await email.signupEmail(data)
+
+                let result = error.OK;
+                logger.info(result);
+                return res.status(200).json(successRes(result, res.statusCode));
+
             }
         }).catch(async function (err) {
             logger.error(err);
@@ -341,43 +396,92 @@ module.exports = {
         });
     },
 
+    forgotPasswordEmail: async (req, res) => {
+
+        if (req.body.body_encrypted) {
+            let original_data = helpers.decrypt(req.body.body_encrypted);
+            console.log(original_data);
+            req.body = original_data;
+        }
+
+        if (!req.body.email) {
+            return res.status(200).json(error.MANDATORY_FIELDS);
+        }
+
+        if (!helpers.isValidEmail(req.body.email)) {
+            return res.status(200).json(error.INVALID_EMAIL);
+        }
+
+        sequelize.sequelize.transaction(async (t1) => {
+            let user = await sequelize.Users.findOne({
+                where: {
+                    email: req.body.email,
+                    is_active: true,
+                    is_confirmed: true
+                }
+            });
+            if (user) {
+                let result = {
+                    signup_token: new Date().getTime()
+                };
+
+                let x = JSON.parse(JSON.stringify(result));
+
+                await sequelize.Users.update(result, { where: { email: req.body.email } });
+
+                let parameter = {};
+                parameter.signup_token = x.signup_token;
+                parameter.email = req.body.email;
+                parameter.name = user.first_name + " " + user.last_name;
+                parameter.language = user.language;
+
+                await forgorPasswordEmail(parameter)
+                return res.status(200).send(successRes(error.OK, res.statusCode));
+            }
+            else {
+                return res.status(200).send(errorsRes(error.USER_NOT_FOUND, res.statusCode));
+            }
+        }).catch(function (err) {
+            console.log(err)
+            return res.status(500).send(error.SERVER_ERROR);
+        });
+    },
+
     forgotPassword: async (req, res) => {
         sequelize.sequelize.transaction(async (t1) => {
 
             if (!req.body.password || req.body.password === ""
-                // ||!req.body.encrypted_data 
+                ||!req.body.encrypted_data 
             ) {
                 logger.warn(error.MANDATORY_FIELDS)
                 return res.status(401).json(errorsRes(error.MANDATORY_FIELDS, res.statusCode));
             }
 
-            // let original_data = await helpers.decrypt(req.body.encrypted_data);
+            let original_data = await helpers.decrypt(req.body.encrypted_data);
 
-            // if (!helpers.isValidEmail(original_data.email)) {
-            //     logger.warn(error.INVALID_EMAIL)
-            //     return res.status(200).json(error.INVALID_EMAIL);
-            // }
+            if (!helpers.isValidEmail(original_data.email)) {
+                logger.warn(error.INVALID_EMAIL)
+                return res.status(200).json(error.INVALID_EMAIL);
+            }
 
 
             let data = await sequelize.Users.findOne({
                 where: {
-                    // email: original_data.email,
-                    user_name: req.body.user_name,
+                    email: original_data.email,
                     is_active: true,
                     is_confirmed: true,
-                    // signup_token: original_data.token.toString()
+                    signup_token: original_data.token.toString()
                 }
             });
 
             if (data) {
 
                 let result = {
-                    // updated_at: helpers.getUTCDateTime(),
-                    // signup_token: null,
+                    signup_token: null,
                     password: helpers.hashPassword(req.body.password)
                 };
 
-                await sequelize.Users.update(result, { where: { user_name: req.body.user_name } });
+                await sequelize.Users.update(result, { where: { email: original_data.email } });
                 logger.info(error.OK)
                 return res.status(200).json(successRes(error.OK, res.statusCode));
             }
@@ -387,6 +491,7 @@ module.exports = {
             }
         }).catch(async function (err) {
             logger.error(err)
+            console.log(err)
             return res.status(500).json(errorsRes(error.SERVER_ERROR, res.statusCode));
         });
     },

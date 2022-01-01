@@ -137,9 +137,8 @@ module.exports = {
             req.body = original_data;
         }
 
-        if (!req.body.first_name || !req.body.last_name || !req.body.email || !req.body.address ||
-            !req.body.city_id || !req.body.state_id || !req.body.country_id || !req.body.phone ||
-            !req.body.password) {
+        if (!req.body.first_name || !req.body.last_name
+            || !req.body.email || !req.body.phone || !req.body.password) {
             logger.warn(error.MANDATORY_FIELDS)
             return res.status(401).json(errorsRes(error.MANDATORY_FIELDS, res.statusCode));
         }
@@ -163,7 +162,8 @@ module.exports = {
                 req.body.is_active = true;
                 req.body.is_confirmed = false;
 
-                let user = await sequelize.Users.create(req.body);
+                // if(user)
+                user = await sequelize.Users.create(req.body);
 
                 const sessionToken = helpers.generateSessionToken();
                 const generateOTP = helpers.generateOTP();
@@ -176,7 +176,6 @@ module.exports = {
                 VerifyOtp.created_at = helpers.getUTCDateTime();
                 VerifyOtp.updated_at = helpers.getUTCDateTime();
 
-                console.log('OTP >>', otp)
                 await sequelize.VerifyOtp.destroy({ where: { email: user.email } });
                 await sequelize.VerifyOtp.create(VerifyOtp)
 

@@ -9,7 +9,7 @@
  * @param   {object | array} data
  * @param   {number} statusCode
  */
-exports.successRes = (result, statusCode) => {
+exports.successRes = (result, statusCode, message) => {
   return {
     message: result.message,
     error: false,
@@ -20,7 +20,7 @@ exports.successRes = (result, statusCode) => {
   };
 };
 
-exports.authSuccess = async (result, statusCode) => {
+exports.authSuccess = async (result, statusCode, message) => {
   return {
     message: result.message,
     error: false,
@@ -38,22 +38,10 @@ exports.authSuccess = async (result, statusCode) => {
  * @param   {number} statusCode
  */
 exports.errorsRes = (error, statusCode) => {
-  /**
-   * List of common HTTP request code
-   * @note  You can add more http request code in here
-   */
-  const codes = [200, 201, 400, 401, 404, 403, 422, 500];
-
-  // Get matched code
-  const findCode = codes.find((code) => code == statusCode);
-
-  if (!findCode) statusCode = 500;
-  else statusCode = findCode;
-
   return {
     message: error.message,
     code: statusCode,
-    status: error.code ? error.code : "error",
+    status: error.status,
     response_code: error.response_code,
     error: true
   };

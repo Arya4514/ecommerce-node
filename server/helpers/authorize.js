@@ -42,7 +42,7 @@ function authorize(Roles = []) {
                     req.body = original_data;
                 }
 
-                if (Roles.length && !Roles.includes(req.userDetails.role_name)) {
+                if (Roles.length && !Roles.includes(req.userDetails.role)) {
                     return res.status(401).json({
                         status: 401,
                         code: "E_PERMISSION_DENIED",

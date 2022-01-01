@@ -15,8 +15,8 @@ let transporter = nodemailer.createTransport({
     // }
     service: "gmail",
     auth: {
-        user:"unixtest1432@gmail.com",
-        pass: 'Unix1432' 
+        user: "unixtest1432@gmail.com",
+        pass: 'Unix1432'
     }
 });
 
@@ -87,11 +87,11 @@ module.exports = {
         }
         let encryptedData = await helpers.encryptLinkData(linkData);
 
-        let requestURL = `${config.END_POINT}/user/forgot_password_email?data=${encryptedData}&&name=${data.name}`;
+        let requestURL = `${config.END_POINT}/forgotpassword/${encryptedData}`;
 
         var mailOptions = {
             to: data.email,
-            subject: "Rest Password - Petrolpump",
+            subject: "Rest Password - Ecommerce",
             html: `<a href=${requestURL}>Click here to generate new password.</a>`
         };
 
@@ -110,11 +110,12 @@ module.exports = {
         // var template = await getHTMLContentFromFile(Const.templatename.TWO_FACTOR_VERIFICATION.KEY, data.language);
         // data = await getDynamicVaribleFromDB(data);
         // template.body = await replaceVariables(template.body, data)
-
+        let link = `http://localhost:3000/verifyemail/${data.session_token}`
         var mailOptions = {
             to: data.email,
             subject: "OTP Verification",
-            html: `<p> OTP is: ${data.otp}</p>`
+            html: `<a href=${link}>Click here to generate new password.</a>
+            <p> OTP is: ${data.otp}</p>`
         };
 
         try {
